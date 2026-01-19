@@ -41,9 +41,10 @@ class DeepSeekClient:
 
         # Reason: Use PandasAI's OpenAI LLM wrapper with DeepSeek config
         # Initialize with a supported model, then override for DeepSeek
+        # Note: PandasAI's OpenAI uses 'api_base' not 'base_url'
         self.llm = OpenAI(
             api_token=api_key,
-            base_url=base_url,
+            api_base=base_url,
             **kwargs,
         )
         # Reason: Override model to use DeepSeek models
