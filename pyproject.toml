@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "pandas-ai-txt2sql"
+version = "0.1.0"
+description = "TXT2SQL system using PandasAI with DeepSeek API and Streamlit"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^2.0"
+streamlit = "^1.30"
+pandasai = "^3.0"
+pandasai-litellm = "^3.0"
+openai = "^1.0"
+python-dotenv = "^1.0"
+pydantic = "^2.0"
+pydantic-settings = "^2.0"
+openpyxl = "^3.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"
+pytest-cov = "^4.0"
+ruff = "^0.1"
+mypy = "^1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
