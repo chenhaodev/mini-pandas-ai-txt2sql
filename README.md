@@ -23,7 +23,7 @@ A conversational data analysis application that allows you to query Excel and CS
 1. Clone and navigate to the project:
 ```bash
 git clone <repository-url>
-cd pandas-ai-txt2sql
+cd mini-pandas-ai-txt2sql
 ```
 
 2. Create and activate a virtual environment:
@@ -99,7 +99,7 @@ The application will open in your browser at `http://localhost:8501`.
 ## Project Structure
 
 ```
-pandas-ai-txt2sql/
+mini-pandas-ai-txt2sql/
 ├── app.py                      # Main Streamlit application
 ├── src/
 │   ├── config.py               # Configuration management
