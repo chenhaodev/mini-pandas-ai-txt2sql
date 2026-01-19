@@ -1,6 +1,7 @@
 """Configuration management for the application."""
 
 from typing import Optional
+
 from dotenv import load_dotenv
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict

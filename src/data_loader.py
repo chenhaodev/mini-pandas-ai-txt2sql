@@ -1,8 +1,8 @@
 """Data file loading module for Excel and CSV files."""
 
 import logging
-from typing import Any, Dict, List, NamedTuple, Union
 from pathlib import Path
+from typing import Any, Dict, List, NamedTuple, Union
 
 import pandas as pd
 

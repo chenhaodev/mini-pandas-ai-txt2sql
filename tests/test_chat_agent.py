@@ -1,9 +1,8 @@
 """Unit tests for chat agent module."""
 
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
 
 from src.chat_agent import PandasAIAgent, QueryResponse
 from src.data_loader import LoadedData
@@ -68,7 +67,6 @@ class TestPandasAIAgent:
 
     def test_load_data(self, mock_llm_client, sample_dataframe):
         """Test loading data into agent."""
-        from src.chat_agent import Agent
 
         with patch("src.chat_agent.Agent") as mock_agent_class:
             mock_agent_instance = MagicMock()

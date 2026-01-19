@@ -1,6 +1,6 @@
 """Unit tests for LLM client module."""
 
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -29,14 +29,14 @@ class TestDeepSeekClient:
         assert client.model == "deepseek-chat"
         assert client.base_url == "https://api.deepseek.com"
 
-    def test_get_client_returns_openai_instance(self):
-        """Test get_client returns OpenAI client instance."""
+    def test_get_llm_returns_pandasai_instance(self):
+        """Test get_llm returns PandasAI LLM instance."""
         client = DeepSeekClient(api_key="test-key")
-        llm = client.get_client()
+        llm = client.get_llm()
 
         assert llm is not None
-        # Reason: Check that it has expected OpenAI attributes
-        assert hasattr(llm, "api_key")
+        # Reason: Check that it has expected PandasAI OpenAI attributes
+        assert hasattr(llm, "api_token")
 
     def test_set_temperature(self):
         """Test setting temperature parameter."""
@@ -55,7 +55,7 @@ class TestDeepSeekClient:
     def test_chat_method_returns_response(self):
         """Test chat method returns correct response format."""
         # Reason: Mock OpenAI client
-        with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch("src.llm_client.OpenAIClient") as mock_openai:
             mock_client = MagicMock()
             mock_response = MagicMock()
             mock_response.choices = [MagicMock()]
@@ -64,16 +64,14 @@ class TestDeepSeekClient:
             mock_openai.return_value = mock_client
 
             client = DeepSeekClient(api_key="test-key")
-            result = client.chat([
-                {"role": "user", "content": "Hello"}
-            ])
+            result = client.chat([{"role": "user", "content": "Hello"}])
 
             assert result == "Test response"
             mock_client.chat.completions.create.assert_called_once()
 
     def test_chat_method_with_additional_params(self):
         """Test chat method with additional parameters."""
-        with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch("src.llm_client.OpenAIClient") as mock_openai:
             mock_client = MagicMock()
             mock_response = MagicMock()
             mock_response.choices = [MagicMock()]
@@ -87,9 +85,7 @@ class TestDeepSeekClient:
                 max_tokens=100,
             )
 
-            result = client.chat([
-                {"role": "user", "content": "Test"}
-            ])
+            client.chat([{"role": "user", "content": "Test"}])
 
             # Reason: Verify temperature and max_tokens are passed
             call_kwargs = mock_client.chat.completions.create.call_args.kwargs
@@ -98,7 +94,7 @@ class TestDeepSeekClient:
 
     def test_chat_method_propagates_exception(self):
         """Test chat method propagates API exceptions."""
-        with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch("src.llm_client.OpenAIClient") as mock_openai:
             mock_client = MagicMock()
             mock_client.chat.completions.create.side_effect = Exception("API Error")
             mock_openai.return_value = mock_client

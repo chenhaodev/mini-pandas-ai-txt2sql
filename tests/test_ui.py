@@ -1,9 +1,8 @@
 """Unit tests for UI components module."""
 
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
 
 
 class TestDisplayMessage:
@@ -11,8 +10,10 @@ class TestDisplayMessage:
 
     def test_display_text_message(self):
         """Test displaying a text message."""
-        with patch("streamlit.chat_message") as mock_chat_msg, \
-             patch("streamlit.write") as mock_write:
+        with (
+            patch("streamlit.chat_message") as mock_chat_msg,
+            patch("streamlit.write") as mock_write,
+        ):
             mock_chat_msg.return_value.__enter__ = MagicMock()
             mock_chat_msg.return_value.__exit__ = MagicMock()
 
@@ -26,14 +27,20 @@ class TestDisplayMessage:
 
     def test_display_error_message(self):
         """Test displaying an error message."""
-        with patch("streamlit.chat_message") as mock_chat_msg, \
-             patch("streamlit.error") as mock_error:
+        with (
+            patch("streamlit.chat_message") as mock_chat_msg,
+            patch("streamlit.error") as mock_error,
+        ):
             mock_chat_msg.return_value.__enter__ = MagicMock()
             mock_chat_msg.return_value.__exit__ = MagicMock()
 
             from src.ui.chat import _display_message
 
-            message = {"role": "assistant", "content": "Error occurred", "type": "error"}
+            message = {
+                "role": "assistant",
+                "content": "Error occurred",
+                "type": "error",
+            }
             _display_message(message)
 
             mock_chat_msg.assert_called_once_with("assistant")
@@ -43,8 +50,10 @@ class TestDisplayMessage:
         """Test displaying a dataframe message."""
         df = pd.DataFrame({"a": [1, 2, 3]})
 
-        with patch("streamlit.chat_message") as mock_chat_msg, \
-             patch("streamlit.dataframe") as mock_df:
+        with (
+            patch("streamlit.chat_message") as mock_chat_msg,
+            patch("streamlit.dataframe") as mock_df,
+        ):
             mock_chat_msg.return_value.__enter__ = MagicMock()
             mock_chat_msg.return_value.__exit__ = MagicMock()
 
@@ -58,8 +67,7 @@ class TestDisplayMessage:
 
     def test_display_message_defaults_to_assistant(self):
         """Test that missing role defaults to assistant."""
-        with patch("streamlit.chat_message") as mock_chat_msg, \
-             patch("streamlit.write") as mock_write:
+        with patch("streamlit.chat_message") as mock_chat_msg:
             mock_chat_msg.return_value.__enter__ = MagicMock()
             mock_chat_msg.return_value.__exit__ = MagicMock()
 
@@ -184,9 +192,11 @@ class TestDisplayChart:
 
     def test_display_chart_handles_exception(self):
         """Test chart display handles exceptions gracefully."""
-        with patch("streamlit.pyplot") as mock_pyplot, \
-             patch("streamlit.warning") as mock_warning, \
-             patch("streamlit.write") as mock_write:
+        with (
+            patch("streamlit.pyplot") as mock_pyplot,
+            patch("streamlit.warning") as mock_warning,
+            patch("streamlit.write") as mock_write,
+        ):
             mock_pyplot.side_effect = Exception("Display error")
 
             from src.ui.chat import _display_chart
@@ -249,8 +259,9 @@ class TestSidebarValidation:
     def test_model_options_contains_expected_models(self):
         """Test that model options contain expected models."""
         # Read the source to verify model options
-        import src.ui.sidebar as sidebar_module
         import inspect
+
+        import src.ui.sidebar as sidebar_module
 
         source = inspect.getsource(sidebar_module.render_sidebar)
 

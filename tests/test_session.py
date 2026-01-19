@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 class TestInitSessionState:
     """Tests for init_session_state function."""
@@ -300,16 +298,16 @@ class TestUtilsExports:
     def test_all_functions_are_exported(self):
         """Test that all expected functions are exported from utils."""
         from src.utils import (
-            init_session_state,
             add_message,
-            get_chat_history,
             clear_chat_history,
-            set_uploaded_files,
-            get_uploaded_files,
-            set_api_key,
             get_api_key,
-            set_model,
+            get_chat_history,
             get_model,
+            get_uploaded_files,
+            init_session_state,
+            set_api_key,
+            set_model,
+            set_uploaded_files,
         )
 
         # All imports should succeed - just verify they are callable

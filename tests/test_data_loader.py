@@ -3,12 +3,12 @@
 import pytest
 
 from src.data_loader import (
+    SUPPORTED_EXTENSIONS,
+    LoadedData,
+    _get_file_extension,
+    get_dataframe_info,
     load_excel_files,
     merge_dataframes,
-    get_dataframe_info,
-    LoadedData,
-    SUPPORTED_EXTENSIONS,
-    _get_file_extension,
 )
 
 
@@ -37,9 +37,9 @@ class TestLoadExcelFiles:
 
     def test_load_empty_excel_file(self):
         """Test loading an Excel file with no data."""
-        from openpyxl import Workbook
         from io import BytesIO
-        import pandas as pd
+
+        from openpyxl import Workbook
 
         wb = Workbook()
         file_stream = BytesIO()
@@ -53,7 +53,7 @@ class TestLoadExcelFiles:
     def test_load_non_excel_file(self):
         """Test loading a non-Excel file."""
         from io import BytesIO
-        import pandas as pd
+
 
         invalid_file = BytesIO(b"not an excel file")
         invalid_file.name = "test.txt"
@@ -122,8 +122,9 @@ class TestMergeDataframes:
         self, sample_dataframe, sample_excel_file_multi
     ):
         """Test merging multiple DataFrames."""
-        from src.data_loader import LoadedData
         import pandas as pd
+
+        from src.data_loader import LoadedData
 
         df2 = pd.DataFrame({
             "Name": ["Diana", "Eve"],

@@ -1,13 +1,13 @@
 """PandasAI Agent wrapper for data analysis."""
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from pandasai import Agent
 
-from .llm_client import DeepSeekClient
 from .data_loader import LoadedData
+from .llm_client import DeepSeekClient
 
 logger = logging.getLogger(__name__)
 
@@ -81,15 +81,13 @@ class PandasAIAgent:
             self.agent = Agent(
                 *dataframes,
                 config={
-                    "llm": self.llm_client.get_client(),
+                    "llm": self.llm_client.get_llm(),
                     "save_logs": self.save_logs,
                     "verbose": False,
                     "max_retries": 3,
                 },
             )
-            logger.info(
-                f"Loaded {len(loaded_files)} DataFrames into PandasAI Agent"
-            )
+            logger.info(f"Loaded {len(loaded_files)} DataFrames into PandasAI Agent")
         else:
             self.agent = None
             logger.warning("No DataFrames loaded into Agent")

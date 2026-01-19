@@ -1,7 +1,7 @@
 """Pytest fixtures for testing."""
 
 import logging
-from io import BytesIO, StringIO
+from io import BytesIO
 from unittest.mock import Mock
 
 import pandas as pd

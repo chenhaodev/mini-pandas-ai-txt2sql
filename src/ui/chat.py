@@ -20,8 +20,6 @@ def render_chat_interface(
         on_message_add: Callback when a message is added to history.
     """
     # Reason: Display existing chat history
-    messages = chat_agent.get_data_summary() if hasattr(chat_agent, 'get_data_summary') else []
-
     if "messages" in st.session_state:
         for message in st.session_state.messages:
             _display_message(message)

@@ -1,15 +1,16 @@
 """DeepSeek LLM client wrapper for PandasAI integration."""
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from openai import OpenAI
+from openai import OpenAI as OpenAIClient
+from pandasai.llm import OpenAI
 
 
 class DeepSeekClient:
-    """Wrapper for DeepSeek API using OpenAI-compatible client.
+    """Wrapper for DeepSeek API using PandasAI's LLM abstraction.
 
     This class provides a unified interface for interacting with DeepSeek's
-    chat completion API, which is OpenAI-compatible.
+    chat completion API through PandasAI's LLM layer.
     """
 
     def __init__(
@@ -32,19 +33,29 @@ class DeepSeekClient:
         self.base_url = base_url
         self._additional_params = kwargs
 
-        # Reason: Use OpenAI client with DeepSeek's base_url
-        self.client = OpenAI(
+        # Reason: Keep OpenAI client for direct API calls
+        self.client = OpenAIClient(
             api_key=api_key,
             base_url=base_url,
         )
 
-    def get_client(self) -> OpenAI:
-        """Get the underlying OpenAI client.
+        # Reason: Use PandasAI's OpenAI LLM wrapper with DeepSeek config
+        # Initialize with a supported model, then override for DeepSeek
+        self.llm = OpenAI(
+            api_token=api_key,
+            base_url=base_url,
+            **kwargs,
+        )
+        # Reason: Override model to use DeepSeek models
+        self.llm.model = model
+
+    def get_llm(self) -> OpenAI:
+        """Get the PandasAI LLM instance.
 
         Returns:
-            OpenAI: The OpenAI client instance.
+            OpenAI: The PandasAI OpenAI LLM instance.
         """
-        return self.client
+        return self.llm
 
     def chat(self, messages: List[Dict[str, str]], **kwargs: Any) -> str:
         """Send a chat completion request to DeepSeek API.
