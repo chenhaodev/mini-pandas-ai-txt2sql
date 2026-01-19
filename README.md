@@ -159,7 +159,3 @@ mypy src/
 - **openpyxl**: Excel file support
 - **pydantic**: Data validation
 - **python-dotenv**: Environment variable management
-
-## License
-
-MIT
