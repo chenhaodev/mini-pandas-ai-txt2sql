@@ -1,7 +1,7 @@
 """Pytest fixtures for testing."""
 
 import logging
-from io import BytesIO
+from io import BytesIO, StringIO
 from unittest.mock import Mock
 
 import pandas as pd
@@ -100,3 +100,53 @@ def mock_llm_client():
     client.model = "deepseek-chat"
     client.base_url = "https://api.deepseek.com"
     return client
+
+
+@pytest.fixture
+def sample_csv_file():
+    """Create a sample CSV file for testing.
+
+    Returns:
+        BytesIO: CSV file with sample data.
+    """
+    csv_content = """Product,Quantity,Price,Category
+Widget A,10,50.0,Electronics
+Widget B,5,75.0,Electronics
+Widget C,15,25.0,Home
+Widget D,8,30.0,Home"""
+
+    file_stream = BytesIO(csv_content.encode("utf-8"))
+    file_stream.name = "test.csv"
+    return file_stream
+
+
+@pytest.fixture
+def sample_csv_file_multi():
+    """Create another sample CSV file for testing multiple file loading.
+
+    Returns:
+        BytesIO: CSV file with sample data.
+    """
+    csv_content = """Product,Quantity,Price,Category
+Widget E,20,100.0,Office
+Widget F,12,45.0,Office
+Widget G,7,60.0,Garden
+Widget H,3,90.0,Garden"""
+
+    file_stream = BytesIO(csv_content.encode("utf-8"))
+    file_stream.name = "test2.csv"
+    return file_stream
+
+
+@pytest.fixture
+def empty_csv_file():
+    """Create an empty CSV file for testing.
+
+    Returns:
+        BytesIO: Empty CSV file with only headers.
+    """
+    csv_content = """Product,Quantity,Price,Category"""
+
+    file_stream = BytesIO(csv_content.encode("utf-8"))
+    file_stream.name = "empty.csv"
+    return file_stream

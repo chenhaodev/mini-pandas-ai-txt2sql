@@ -1,15 +1,15 @@
 # PandasAI TXT2SQL with DeepSeek
 
-A conversational data analysis application that allows you to query Excel files using natural language. Built with PandasAI, DeepSeek API, and Streamlit.
+A conversational data analysis application that allows you to query Excel and CSV files using natural language. Built with PandasAI, DeepSeek API, and Streamlit.
 
 ## Features
 
-- 📊 **Natural Language Queries**: Ask questions about your data in plain English
-- 📁 **Multi-File Support**: Upload and query across multiple Excel files
-- 📈 **Visualizations**: Generate charts and graphs on demand
-- 🤖 **DeepSeek Integration**: Uses DeepSeek API instead of OpenAI
-- 💬 **Chat Interface**: Streamlit-based chat with message history
-- 🔍 **Data Exploration**: Get insights without writing SQL or Python code
+- **Natural Language Queries**: Ask questions about your data in plain English
+- **Multi-File Support**: Upload and query across multiple Excel and CSV files
+- **Visualizations**: Generate charts and graphs on demand
+- **DeepSeek Integration**: Uses DeepSeek API for LLM capabilities
+- **Chat Interface**: Streamlit-based chat with message history
+- **Data Exploration**: Get insights without writing SQL or Python code
 
 ## Installation
 
@@ -17,28 +17,29 @@ A conversational data analysis application that allows you to query Excel files 
 
 - Python 3.9 or higher
 - DeepSeek API key (get one at https://platform.deepseek.com/)
-- Virtual environment (use `venv_linux` per project guidelines)
 
 ### Setup
 
-1. Navigate to the project directory:
+1. Clone and navigate to the project:
 ```bash
-cd use-cases/pandas-ai-txt2sql
+git clone <repository-url>
+cd pandas-ai-txt2sql
 ```
 
-2. Activate the virtual environment:
+2. Create and activate a virtual environment:
 ```bash
-source venv_linux/bin/activate
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# or
+.venv\Scripts\activate     # Windows
 ```
 
-3. Install dependencies using Poetry:
-```bash
-poetry install
-```
-
-Or using pip:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
+
+# Or install as a package with dev dependencies:
+pip install -e ".[dev]"
 ```
 
 4. Set up environment variables:
@@ -59,8 +60,8 @@ The application will open in your browser at `http://localhost:8501`.
 
 ### Using the Application
 
-1. **Upload Excel Files**:
-   - Use the sidebar file uploader to upload `.xlsx` or `.xls` files
+1. **Upload Data Files**:
+   - Use the sidebar file uploader to upload `.xlsx`, `.xls`, or `.csv` files
    - Multiple files can be uploaded at once
 
 2. **Configure API** (optional):
@@ -98,23 +99,22 @@ The application will open in your browser at `http://localhost:8501`.
 ## Project Structure
 
 ```
-use-cases/pandas-ai-txt2sql/
+pandas-ai-txt2sql/
 ├── app.py                      # Main Streamlit application
 ├── src/
 │   ├── config.py               # Configuration management
 │   ├── llm_client.py           # DeepSeek LLM wrapper
-│   ├── data_loader.py          # Excel file loading
+│   ├── data_loader.py          # Excel/CSV file loading
 │   ├── chat_agent.py           # PandasAI Agent wrapper
 │   ├── ui/
-│   │   ├── sidebar.py         # Sidebar component
-│   │   └── chat.py           # Chat interface
+│   │   ├── sidebar.py          # Sidebar component
+│   │   └── chat.py             # Chat interface
 │   └── utils/
-│       └── session.py         # Session state management
-├── tests/                     # Unit tests
-├── examples/                   # Sample data files
-├── pyproject.toml             # Poetry configuration
-├── requirements.txt           # Pip requirements
-└── .env.example              # Environment variables template
+│       └── session.py          # Session state management
+├── tests/                      # Unit tests
+├── pyproject.toml              # Project configuration
+├── requirements.txt            # Pip requirements
+└── .env.example                # Environment variables template
 ```
 
 ## Development
@@ -122,7 +122,6 @@ use-cases/pandas-ai-txt2sql/
 ### Running Tests
 
 ```bash
-source venv_linux/bin/activate
 pytest tests/ -v
 ```
 
@@ -139,17 +138,21 @@ mypy src/
 ## Environment Variables
 
 | Variable | Description | Default |
-|----------|-------------|----------|
+|----------|-------------|---------|
 | `DEEPSEEK_API_KEY` | Your DeepSeek API key | Required |
 | `DEEPSEEK_MODEL` | Model to use | `deepseek-chat` |
 | `DEEPSEEK_BASE_URL` | DeepSeek API URL | `https://api.deepseek.com` |
 | `APP_TITLE` | Application title | `PandasAI TXT2SQL` |
 | `APP_LOG_LEVEL` | Logging level | `INFO` |
 
+## Supported File Formats
+
+- Excel: `.xlsx`, `.xls`
+- CSV: `.csv`
+
 ## Dependencies
 
 - **pandasai**: Natural language data analysis
-- **pandasai-litellm**: LLM integration for PandasAI
 - **streamlit**: Web UI framework
 - **openai**: OpenAI SDK (used for DeepSeek compatibility)
 - **pandas**: Data manipulation
@@ -160,9 +163,3 @@ mypy src/
 ## License
 
 MIT
-
-## Acknowledgments
-
-- [PandasAI](https://github.com/sinaptik-ai/pandas-ai) - The core data analysis library
-- [DeepSeek](https://platform.deepseek.com/) - LLM provider
-- [Streamlit](https://streamlit.io/) - Web framework

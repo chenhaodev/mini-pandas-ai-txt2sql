@@ -60,10 +60,10 @@ def render_sidebar(
         # Reason: File upload widget with multi-file support
         st.header("Data Upload")
         uploaded_files = st.file_uploader(
-            "Upload Excel files",
-            type=["xlsx", "xls"],
+            "Upload data files",
+            type=["xlsx", "xls", "csv"],
             accept_multiple_files=True,
-            help="Upload one or more Excel files to analyze.",
+            help="Upload Excel (.xlsx, .xls) or CSV (.csv) files to analyze.",
         )
 
         if on_file_upload and uploaded_files:

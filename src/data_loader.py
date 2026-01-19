@@ -1,21 +1,26 @@
-"""Excel file loading module."""
+"""Data file loading module for Excel and CSV files."""
 
 import logging
-from typing import Any, Dict, List, NamedTuple
+from typing import Any, Dict, List, NamedTuple, Union
 from pathlib import Path
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# Supported file extensions
+EXCEL_EXTENSIONS = {".xlsx", ".xls"}
+CSV_EXTENSIONS = {".csv"}
+SUPPORTED_EXTENSIONS = EXCEL_EXTENSIONS | CSV_EXTENSIONS
+
 
 class LoadedData(NamedTuple):
-    """Represents a loaded Excel file with metadata.
+    """Represents a loaded data file with metadata.
 
     Attributes:
         data: The pandas DataFrame containing the data.
         filename: The original filename.
-        sheet_name: The sheet name from the Excel file.
+        sheet_name: The sheet name (for Excel) or 'CSV' for CSV files.
     """
 
     data: pd.DataFrame
@@ -23,67 +28,110 @@ class LoadedData(NamedTuple):
     sheet_name: str
 
 
-def load_excel_files(  # noqa: ruff
-    files: List,
-    sheet_name: str = 0,
-    validate_empty: bool = True,
-) -> List[LoadedData]:  # noqa: ruff
-    """Load Excel files into pandas DataFrames.
+def _get_file_extension(filename: str) -> str:
+    """Get the lowercase file extension from a filename.
 
     Args:
-        files: List of file-like objects or file paths to Excel files.
-        sheet_name: Sheet name or index to load (default: 0 for first sheet).
+        filename: The filename to extract extension from.
+
+    Returns:
+        str: The lowercase file extension including the dot.
+    """
+    return Path(filename).suffix.lower()
+
+
+def _load_single_file(
+    file_obj: Any,
+    sheet_name: Union[str, int] = 0,
+    validate_empty: bool = True,
+) -> List[LoadedData]:
+    """Load a single file (Excel or CSV) into DataFrames.
+
+    Args:
+        file_obj: File-like object or file path.
+        sheet_name: Sheet name or index for Excel files (ignored for CSV).
+        validate_empty: Whether to validate that DataFrames are not empty.
+
+    Returns:
+        List[LoadedData]: List of loaded data (may be multiple for Excel sheets).
+
+    Raises:
+        ValueError: If the file format is unsupported or file is empty.
+    """
+    # Determine filename
+    if hasattr(file_obj, "read"):
+        filename = getattr(file_obj, "name", "unknown")
+    elif isinstance(file_obj, (str, Path)):
+        filename = Path(file_obj).name
+    else:
+        raise ValueError(f"Unsupported file type: {type(file_obj)}")
+
+    ext = _get_file_extension(filename)
+
+    if ext not in SUPPORTED_EXTENSIONS:
+        raise ValueError(
+            f"Unsupported file format '{ext}'. "
+            f"Supported formats: {', '.join(sorted(SUPPORTED_EXTENSIONS))}"
+        )
+
+    # Load based on file type
+    if ext in CSV_EXTENSIONS:
+        df = pd.read_csv(file_obj)
+        actual_sheet_name = "CSV"
+    else:
+        # Excel file
+        df = pd.read_excel(file_obj, sheet_name=sheet_name)
+        actual_sheet_name = (
+            sheet_name if isinstance(sheet_name, str) else f"Sheet {sheet_name}"
+        )
+
+    # Validate empty DataFrame
+    if validate_empty and df.empty:
+        raise ValueError(f"File '{filename}' is empty.")
+
+    return [LoadedData(data=df, filename=filename, sheet_name=actual_sheet_name)]
+
+
+def load_excel_files(
+    files: List,
+    sheet_name: Union[str, int] = 0,
+    validate_empty: bool = True,
+) -> List[LoadedData]:
+    """Load Excel and CSV files into pandas DataFrames.
+
+    Args:
+        files: List of file-like objects or file paths.
+        sheet_name: Sheet name or index for Excel files (ignored for CSV).
         validate_empty: Whether to validate that DataFrames are not empty.
 
     Returns:
         List[LoadedData]: List of loaded data with metadata.
 
     Raises:
-        ValueError: If a file is not a valid Excel file or is empty.
+        ValueError: If a file is invalid or empty.
     """
     loaded_files: List[LoadedData] = []
 
     for file_obj in files:
         try:
-            # Handle both file-like objects and file paths
-            if hasattr(file_obj, "read"):
-                # File-like object from Streamlit
-                filename = getattr(file_obj, "name", "unknown.xlsx")
-                df = pd.read_excel(file_obj, sheet_name=sheet_name)
-            elif isinstance(file_obj, (str, Path)):
-                # File path
-                filename = Path(file_obj).name
-                df = pd.read_excel(file_obj, sheet_name=sheet_name)
-            else:
-                raise ValueError(f"Unsupported file type: {type(file_obj)}")
-
-            # Get actual sheet name if index was used
-            actual_sheet_name = (
-                sheet_name if isinstance(sheet_name, str) else f"Sheet {sheet_name}"
+            loaded = _load_single_file(
+                file_obj,
+                sheet_name=sheet_name,
+                validate_empty=validate_empty,
             )
+            loaded_files.extend(loaded)
 
-            # Validate empty DataFrame
-            if validate_empty and df.empty:
-                raise ValueError(
-                    f"File '{filename}' sheet '{actual_sheet_name}' is empty."
+            for item in loaded:
+                logger.info(
+                    f"Loaded {item.filename}: "
+                    f"{len(item.data)} rows, {len(item.data.columns)} columns"
                 )
 
-            loaded = LoadedData(
-                data=df,
-                filename=filename,
-                sheet_name=actual_sheet_name,
-            )
-            loaded_files.append(loaded)
-            logger.info(
-                f"Loaded {filename}: {len(df)} rows, {len(df.columns)} columns"
-            )
-
         except ValueError:
-            # Re-raise validation errors
             raise
         except Exception as e:
-            # Reason: Provide user-friendly error for invalid files
-            error_msg = f"Failed to load file {getattr(file_obj, 'name', 'unknown')}: {e}"
+            filename = getattr(file_obj, "name", "unknown")
+            error_msg = f"Failed to load file {filename}: {e}"
             logger.error(error_msg)
             raise ValueError(error_msg) from e
 

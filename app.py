@@ -104,7 +104,7 @@ def main() -> None:
         config_model=model,
         on_api_key_change=on_api_key_change,
         on_model_change=on_model_change,
-        on_file_upload=on_file_upload if uploaded_files else None,
+        on_file_upload=on_file_upload,
         on_clear_chat=on_clear_chat,
     )
 
@@ -147,11 +147,11 @@ def render_welcome_message(has_data: bool) -> None:
         👋 Welcome to PandasAI TXT2SQL!
 
         To get started:
-        1. 📤 Upload your Excel files using the sidebar
+        1. 📤 Upload your data files using the sidebar
         2. 💬 Ask questions about your data in natural language
         3. 📊 View results, tables, and charts
 
-        Supported file formats: .xlsx, .xls
+        Supported file formats: .xlsx, .xls, .csv
         """)
     else:
         st.success("""

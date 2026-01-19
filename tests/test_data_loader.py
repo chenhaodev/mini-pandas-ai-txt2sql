@@ -7,6 +7,8 @@ from src.data_loader import (
     merge_dataframes,
     get_dataframe_info,
     LoadedData,
+    SUPPORTED_EXTENSIONS,
+    _get_file_extension,
 )
 
 
@@ -43,6 +45,7 @@ class TestLoadExcelFiles:
         file_stream = BytesIO()
         wb.save(file_stream)
         file_stream.seek(0)
+        file_stream.name = "empty.xlsx"
 
         with pytest.raises(ValueError, match="is empty"):
             load_excel_files([file_stream], validate_empty=True)
@@ -55,7 +58,7 @@ class TestLoadExcelFiles:
         invalid_file = BytesIO(b"not an excel file")
         invalid_file.name = "test.txt"
 
-        with pytest.raises(ValueError, match="(Failed to load|Excel file format)"):
+        with pytest.raises(ValueError, match="(Unsupported file format|Failed to load)"):
             load_excel_files([invalid_file])
 
     def test_get_dataframe_info(self):
@@ -148,3 +151,95 @@ class TestMergeDataframes:
         """Test merging empty list of DataFrames."""
         with pytest.raises(ValueError, match="No DataFrames to merge"):
             merge_dataframes([])
+
+
+class TestLoadCSVFiles:
+    """Tests for CSV file loading functionality."""
+
+    def test_load_valid_csv_file(self, sample_csv_file):
+        """Test loading a valid CSV file."""
+        result = load_excel_files([sample_csv_file])
+
+        assert len(result) == 1
+        assert isinstance(result[0], LoadedData)
+        assert len(result[0].data) == 4
+        assert result[0].filename.endswith(".csv")
+        assert result[0].sheet_name == "CSV"
+
+    def test_load_multiple_csv_files(
+        self, sample_csv_file, sample_csv_file_multi
+    ):
+        """Test loading multiple CSV files."""
+        result = load_excel_files([sample_csv_file, sample_csv_file_multi])
+
+        assert len(result) == 2
+        assert len(result[0].data) == 4
+        assert len(result[1].data) == 4
+        assert result[0].sheet_name == "CSV"
+        assert result[1].sheet_name == "CSV"
+
+    def test_load_empty_csv_file(self, empty_csv_file):
+        """Test loading an empty CSV file."""
+        with pytest.raises(ValueError, match="is empty"):
+            load_excel_files([empty_csv_file], validate_empty=True)
+
+    def test_load_empty_csv_file_without_validation(self, empty_csv_file):
+        """Test loading an empty CSV file without validation."""
+        result = load_excel_files([empty_csv_file], validate_empty=False)
+
+        assert len(result) == 1
+        assert len(result[0].data) == 0
+
+    def test_csv_data_content(self, sample_csv_file):
+        """Test that CSV data is loaded correctly."""
+        result = load_excel_files([sample_csv_file])
+        df = result[0].data
+
+        assert "Product" in df.columns
+        assert "Quantity" in df.columns
+        assert "Price" in df.columns
+        assert "Category" in df.columns
+        assert df["Product"].iloc[0] == "Widget A"
+        assert df["Quantity"].iloc[0] == 10
+
+    def test_mixed_excel_and_csv_files(
+        self, sample_excel_file, sample_csv_file
+    ):
+        """Test loading both Excel and CSV files together."""
+        result = load_excel_files([sample_excel_file, sample_csv_file])
+
+        assert len(result) == 2
+        # Excel file
+        assert result[0].filename.endswith(".xlsx")
+        assert result[0].sheet_name == "Sheet 0"
+        # CSV file
+        assert result[1].filename.endswith(".csv")
+        assert result[1].sheet_name == "CSV"
+
+
+class TestFileExtensionHelpers:
+    """Tests for file extension helper functions."""
+
+    def test_get_file_extension_xlsx(self):
+        """Test extracting xlsx extension."""
+        assert _get_file_extension("test.xlsx") == ".xlsx"
+
+    def test_get_file_extension_xls(self):
+        """Test extracting xls extension."""
+        assert _get_file_extension("test.xls") == ".xls"
+
+    def test_get_file_extension_csv(self):
+        """Test extracting csv extension."""
+        assert _get_file_extension("test.csv") == ".csv"
+
+    def test_get_file_extension_uppercase(self):
+        """Test that extension is lowercased."""
+        assert _get_file_extension("test.CSV") == ".csv"
+        assert _get_file_extension("test.XLSX") == ".xlsx"
+
+    def test_supported_extensions_contains_expected(self):
+        """Test that SUPPORTED_EXTENSIONS contains expected formats."""
+        assert ".xlsx" in SUPPORTED_EXTENSIONS
+        assert ".xls" in SUPPORTED_EXTENSIONS
+        assert ".csv" in SUPPORTED_EXTENSIONS
+        assert ".txt" not in SUPPORTED_EXTENSIONS

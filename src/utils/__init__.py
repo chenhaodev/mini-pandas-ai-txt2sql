@@ -7,6 +7,10 @@ from .session import (
     clear_chat_history,
     set_uploaded_files,
     get_uploaded_files,
+    set_api_key,
+    get_api_key,
+    set_model,
+    get_model,
 )
 
 __all__ = [
@@ -16,4 +20,8 @@ __all__ = [
     "clear_chat_history",
     "set_uploaded_files",
     "get_uploaded_files",
+    "set_api_key",
+    "get_api_key",
+    "set_model",
+    "get_model",
 ]
