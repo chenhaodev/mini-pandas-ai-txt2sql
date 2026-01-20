@@ -85,8 +85,31 @@ class AutoInsight:
             # Reason: Distribution plots for numeric columns
             numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
             if len(numeric_cols) > 0:
-                # Limit to first 6 numeric columns
-                for col in numeric_cols[:6]:
+                # Filter numeric columns for meaningful distributions
+                valid_numeric_cols = []
+                for col in numeric_cols[:10]:  # Check up to 10 columns
+                    # Skip constant columns
+                    if df[col].nunique() <= 1:
+                        logger.debug(f"Skipping histogram for {col}: constant values")
+                        continue
+                    # Skip if all values are NaN
+                    if df[col].isna().all():
+                        logger.debug(f"Skipping histogram for {col}: all NaN")
+                        continue
+                    # Skip if too few valid values
+                    if df[col].count() < 3:
+                        logger.debug(f"Skipping histogram for {col}: too few values")
+                        continue
+                    # Skip ID-like columns (very high cardinality for large datasets)
+                    if len(df) > 100 and df[col].nunique() > len(df) * 0.95:
+                        logger.debug(
+                            f"Skipping histogram for {col}: likely an ID column"
+                        )
+                        continue
+                    valid_numeric_cols.append(col)
+
+                # Limit to first 6 valid numeric columns
+                for col in valid_numeric_cols[:6]:
                     fig, ax = plt.subplots(figsize=(8, 5))
                     df[col].hist(bins=30, ax=ax, edgecolor="black")
                     ax.set_title(f"Distribution of {col}")
