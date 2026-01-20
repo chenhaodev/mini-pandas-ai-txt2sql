@@ -39,18 +39,15 @@ cd mini-pandas-ai-txt2sql
 
 2. Create and activate a virtual environment:
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
 # or
-.venv\Scripts\activate     # Windows
+venv\Scripts\activate     # Windows
 ```
 
 3. Install dependencies:
 ```bash
 pip install -r requirements.txt
-
-# Or install as a package with dev dependencies:
-pip install -e ".[dev]"
 ```
 
 4. Set up environment variables:
