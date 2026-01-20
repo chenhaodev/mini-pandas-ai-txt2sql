@@ -206,44 +206,74 @@ class AutoInsight:
 
             # Reason: Correlation heatmap if multiple numeric columns
             if len(numeric_cols) > 1:
-                fig, ax = plt.subplots(figsize=(12, 10))
-                # Limit to first 10 numeric columns for readability
-                cols_to_plot = numeric_cols[:10]
-                corr = df[cols_to_plot].corr()
-                sns.heatmap(
-                    corr,
-                    annot=True,
-                    fmt=".2f",
-                    cmap="coolwarm",
-                    ax=ax,
-                    center=0,
-                    square=True,
-                    xticklabels=corr.columns,
-                    yticklabels=corr.columns,
-                    cbar_kws={"shrink": 0.8},
-                )
-                ax.set_title("Correlation Matrix", pad=20)
-                # Rotate labels for better readability
-                plt.xticks(rotation=45, ha="right")
-                plt.yticks(rotation=0)
-                plt.tight_layout()
+                # Filter out problematic columns for correlation
+                cols_to_plot = []
+                for col in numeric_cols[:10]:
+                    # Skip if constant (no variance)
+                    if df[col].nunique() <= 1:
+                        logger.debug(f"Skipping {col}: constant values")
+                        continue
+                    # Skip if too many NaN values (more than 80%)
+                    if df[col].isna().sum() > len(df) * 0.8:
+                        logger.debug(f"Skipping {col}: too many NaN")
+                        continue
+                    # Skip if column appears to be an ID (very high cardinality for small datasets)
+                    # Only filter if dataset is large and column is unique-per-row
+                    if len(df) > 100 and df[col].nunique() > len(df) * 0.95:
+                        logger.debug(f"Skipping {col}: likely an ID column")
+                        continue
+                    cols_to_plot.append(col)
 
-                # Calculate interestingness score for correlation
-                corr_values = corr.values[np.triu_indices_from(corr.values, k=1)]
-                max_corr = np.max(np.abs(corr_values)) if len(corr_values) > 0 else 0
-                avg_corr = np.mean(np.abs(corr_values)) if len(corr_values) > 0 else 0
-                score = max_corr * 50 + avg_corr * 20
+                # Only create heatmap if we have at least 2 valid columns
+                if len(cols_to_plot) < 2:
+                    logger.info(
+                        f"Not enough valid numeric columns for correlation matrix (found {len(cols_to_plot)})"
+                    )
+                else:
+                    fig, ax = plt.subplots(figsize=(12, 10))
+                    corr = df[cols_to_plot].corr()
 
-                visualizations.append(
-                    {
-                        "type": "heatmap",
-                        "title": f"{name} - Correlation Matrix",
-                        "figure": fig,
-                        "column": None,
-                        "category": "correlation",
-                        "score": float(score),
-                    }
-                )
+                    # Remove any remaining NaN values
+                    corr = corr.fillna(0)
+
+                    sns.heatmap(
+                        corr,
+                        annot=True,
+                        fmt=".2f",
+                        cmap="coolwarm",
+                        ax=ax,
+                        center=0,
+                        square=True,
+                        xticklabels=corr.columns,
+                        yticklabels=corr.columns,
+                        cbar_kws={"shrink": 0.8},
+                    )
+                    ax.set_title("Correlation Matrix", pad=20)
+                    # Rotate labels for better readability
+                    plt.xticks(rotation=45, ha="right")
+                    plt.yticks(rotation=0)
+                    plt.tight_layout()
+
+                    # Calculate interestingness score for correlation
+                    corr_values = corr.values[np.triu_indices_from(corr.values, k=1)]
+                    max_corr = (
+                        np.max(np.abs(corr_values)) if len(corr_values) > 0 else 0
+                    )
+                    avg_corr = (
+                        np.mean(np.abs(corr_values)) if len(corr_values) > 0 else 0
+                    )
+                    score = max_corr * 50 + avg_corr * 20
+
+                    visualizations.append(
+                        {
+                            "type": "heatmap",
+                            "title": f"{name} - Correlation Matrix",
+                            "figure": fig,
+                            "column": None,
+                            "category": "correlation",
+                            "score": float(score),
+                        }
+                    )
 
         return visualizations
 
