@@ -14,7 +14,6 @@ if str(src_path) not in sys.path:
 from src.auto_insights import AutoInsight
 from src.chat_agent import PandasAIAgent
 from src.config import get_config
-from src.data_loader import load_excel_files
 from src.llm_client import DeepSeekClient
 from src.ui import render_chat_interface, render_sidebar
 from src.utils import (
@@ -31,10 +30,12 @@ from src.utils import (
     set_model,
 )
 
-# Reason: Configure logging
+# Reason: Configure logging with UTF-8 encoding for Chinese character support
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    encoding="utf-8",
+    force=True,
 )
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,10 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
-    # Reason: Initialize session state
+    # Reason: Validate and initialize session state
+    from src.utils.session import validate_session_state
+
+    validate_session_state()
     init_session_state()
 
     # Reason: Show warning if Chinese font is not available
@@ -103,12 +107,48 @@ def main() -> None:
         logger.info(f"Model changed to {new_model}")
 
     def on_file_upload(uploaded_files: list) -> None:
-        """Handle file upload."""
+        """Handle file upload or removal.
+
+        Args:
+            uploaded_files: List of uploaded files (empty if all removed).
+        """
         try:
-            loaded_data = load_excel_files(uploaded_files)
-            chat_agent.load_data(loaded_data)
-            set_loaded_data(loaded_data)
-            logger.info(f"Loaded {len(loaded_data)} Excel files")
+            if uploaded_files:
+                # Files uploaded - load them with best-effort strategy
+                from src.data_loader import load_excel_files_with_result
+
+                result = load_excel_files_with_result(uploaded_files)
+
+                # Display warnings for failed files
+                if result.failed:
+                    for filename, error in result.failed.items():
+                        st.warning(f"⚠️ Failed to load '{filename}': {error}")
+                    logger.warning(
+                        f"Failed to load {len(result.failed)} files: "
+                        f"{list(result.failed.keys())}"
+                    )
+
+                # Load successful files
+                if result.successful:
+                    chat_agent.load_data(result.successful)
+                    set_loaded_data(result.successful)
+                    logger.info(
+                        f"Loaded {len(result.successful)} files successfully, "
+                        f"{len(result.failed)} failed"
+                    )
+                    st.success(
+                        f"✅ Loaded {len(result.successful)} file(s) successfully"
+                    )
+                else:
+                    # All files failed
+                    chat_agent.load_data([])
+                    set_loaded_data([])
+                    st.error("❌ All files failed to load. Please check file formats.")
+            else:
+                # All files removed - clear data
+                chat_agent.load_data([])
+                set_loaded_data([])
+                logger.info("All files removed - cleared loaded data")
         except Exception as e:
             st.error(f"Failed to load files: {e}")
             logger.error(f"Failed to load files: {e}", exc_info=True)
@@ -181,7 +221,7 @@ def main() -> None:
     # Reason: Render sidebar
     # Check if data is loaded (either in chat_agent or session state)
     has_data = chat_agent.is_data_loaded() or len(get_loaded_data()) > 0
-    uploaded_files = render_sidebar(
+    render_sidebar(
         config_api_key=api_key,
         config_model=model,
         on_api_key_change=on_api_key_change,

@@ -82,8 +82,10 @@ def render_sidebar(
         prev_file_names = st.session_state[prev_files_key]
         files_changed = current_file_names != prev_file_names
 
-        if on_file_upload and uploaded_files and files_changed:
-            on_file_upload(uploaded_files)
+        # Handle file upload or removal
+        if on_file_upload and files_changed:
+            # Call callback with current files (empty list if all removed)
+            on_file_upload(uploaded_files if uploaded_files else [])
             st.session_state[prev_files_key] = current_file_names
             st.rerun()
 
@@ -92,6 +94,16 @@ def render_sidebar(
             st.success(f"Loaded {len(uploaded_files)} file(s)")
             for file in uploaded_files:
                 st.caption(f"📄 {file.name}")
+
+            # Force reload button
+            if st.button(
+                "🔄 Force Reload Files",
+                use_container_width=True,
+                help="Reload the same files without removing them first",
+            ):
+                if on_file_upload:
+                    on_file_upload(uploaded_files)
+                    st.rerun()
         else:
             st.info("No files uploaded yet.")
 
@@ -125,7 +137,7 @@ def render_sidebar(
             st.markdown("""
             **Quick Start:**
             - Click "🔍 Generate Auto Insights" for automatic analysis
-            
+
             **Simple Queries:**
             - How many rows are in the data?
             - What are the column names?

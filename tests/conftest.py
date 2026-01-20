@@ -59,17 +59,45 @@ def sample_excel_file_multi():
 
 
 @pytest.fixture
+def sample_excel_file_numeric_columns():
+    """Create an Excel file with mixed string and numeric column names.
+
+    This simulates real-world files like date-based columns (e.g., 20250131).
+
+    Returns:
+        BytesIO: Excel file with numeric column names.
+    """
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    # First row with mixed column types - string and integers
+    ws.append(["省份", 20250131, 20250228, 20250331])
+    ws.append(["北京", 100, 200, 300])
+    ws.append(["上海", 150, 250, 350])
+    ws.append(["广州", 120, 220, 320])
+
+    file_stream = BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+    file_stream.name = "numeric_columns.xlsx"
+    return file_stream
+
+
+@pytest.fixture
 def sample_dataframe():
     """Create a sample DataFrame for testing.
 
     Returns:
         pd.DataFrame: Sample DataFrame.
     """
-    return pd.DataFrame({
-        "Name": ["Alice", "Bob", "Charlie"],
-        "Sales": [1000, 1500, 1200],
-        "Region": ["North", "South", "East"],
-    })
+    return pd.DataFrame(
+        {
+            "Name": ["Alice", "Bob", "Charlie"],
+            "Sales": [1000, 1500, 1200],
+            "Region": ["North", "South", "East"],
+        }
+    )
 
 
 @pytest.fixture
