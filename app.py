@@ -151,6 +151,8 @@ def main() -> None:
             logger.error(f"Auto insights error: {e}", exc_info=True)
 
     # Reason: Render sidebar
+    # Check if data is loaded (either in chat_agent or session state)
+    has_data = chat_agent.is_data_loaded() or len(get_loaded_data()) > 0
     uploaded_files = render_sidebar(
         config_api_key=api_key,
         config_model=model,
@@ -159,7 +161,7 @@ def main() -> None:
         on_file_upload=on_file_upload,
         on_clear_chat=on_clear_chat,
         on_auto_insights=on_auto_insights,
-        has_data=chat_agent.is_data_loaded(),
+        has_data=has_data,
     )
 
     # Reason: Render main content area
