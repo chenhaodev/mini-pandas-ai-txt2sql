@@ -26,9 +26,15 @@ A conversational data analysis application that allows you to query Excel and CS
 ### Quick Start
 
 ```bash
-# Clone and install
+# Clone repository
 git clone <repository-url>
 cd mini-pandas-ai-txt2sql
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 
 # Set up environment
