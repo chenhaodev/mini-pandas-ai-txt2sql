@@ -21,8 +21,8 @@ def render_chat_interface(
     """
     # Reason: Display existing chat history
     if "messages" in st.session_state:
-        for message in st.session_state.messages:
-            _display_message(message)
+        for idx, message in enumerate(st.session_state.messages):
+            _display_message(message, message_idx=idx)
 
     # Reason: Handle new user input
     if prompt := st.chat_input("Ask about your data..."):
@@ -44,7 +44,10 @@ def render_chat_interface(
                 response = chat_agent.query(prompt)
 
             # Display response based on type
-            _display_response(response)
+            # Use timestamp-based key for new responses
+            import time
+
+            _display_response(response, key_suffix=f"new_{int(time.time() * 1000)}")
 
             # Reason: Add assistant response to history
             assistant_message = response.to_dict()
@@ -58,11 +61,12 @@ def render_chat_interface(
             )
 
 
-def _display_message(message: dict) -> None:
+def _display_message(message: dict, message_idx: int = 0) -> None:
     """Display a single message from chat history.
 
     Args:
         message: Message dictionary with role, content, and type keys.
+        message_idx: Index of the message in session state for unique keys.
     """
     role = message.get("role", "assistant")
     content = message.get("content")
@@ -72,7 +76,7 @@ def _display_message(message: dict) -> None:
         if type_ == "dataframe" and isinstance(content, pd.DataFrame):
             st.dataframe(content, use_container_width=True)
         elif type_ == "chart":
-            _display_chart(content)
+            _display_chart(content, key_suffix=f"msg_{message_idx}")
         elif type_ == "error":
             st.error(str(content))
         else:
@@ -83,11 +87,12 @@ def _display_message(message: dict) -> None:
                 st.write(content)
 
 
-def _display_response(response) -> None:
+def _display_response(response, key_suffix: str = "new") -> None:
     """Display a PandasAI response.
 
     Args:
         response: QueryResponse object with type and content.
+        key_suffix: Unique suffix for widget keys.
     """
     if not response.success:
         st.error(f"Error: {response.content}")
@@ -96,7 +101,7 @@ def _display_response(response) -> None:
     if response.type == "dataframe":
         st.dataframe(response.content, use_container_width=True)
     elif response.type == "chart":
-        _display_chart(response.content)
+        _display_chart(response.content, key_suffix=key_suffix)
     elif response.explanation:
         # Reason: Show explanation if available
         st.markdown(response.explanation)
@@ -106,11 +111,12 @@ def _display_response(response) -> None:
         st.write(str(response.content))
 
 
-def _display_chart(chart_obj) -> None:
+def _display_chart(chart_obj, key_suffix: str = "") -> None:
     """Display a chart/plot object with download option.
 
     Args:
         chart_obj: The chart object to display.
+        key_suffix: Unique suffix for widget keys to avoid duplicates.
     """
     import io
     from pathlib import Path
@@ -126,6 +132,7 @@ def _display_chart(chart_obj) -> None:
                     data=f.read(),
                     file_name=Path(chart_obj).name,
                     mime="image/png",
+                    key=f"download_chart_{Path(chart_obj).stem}_{key_suffix}",
                 )
             return
 
@@ -143,6 +150,7 @@ def _display_chart(chart_obj) -> None:
                 data=buf,
                 file_name="chart.png",
                 mime="image/png",
+                key=f"download_mpl_{key_suffix}",
             )
             return
 
@@ -159,6 +167,7 @@ def _display_chart(chart_obj) -> None:
                 data=buf,
                 file_name="chart.png",
                 mime="image/png",
+                key=f"download_axes_{key_suffix}",
             )
             return
 
@@ -208,6 +217,7 @@ def _display_chart(chart_obj) -> None:
                 data=buf,
                 file_name="chart.png",
                 mime="image/png",
+                key=f"download_seaborn_{key_suffix}",
             )
             return
 
