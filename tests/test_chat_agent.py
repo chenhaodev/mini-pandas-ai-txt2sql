@@ -86,9 +86,7 @@ class TestPandasAIAgent:
             assert agent.agent is not None
             mock_agent_class.assert_called_once()
 
-    def test_load_data_with_multiple_files(
-        self, mock_llm_client, sample_dataframe
-    ):
+    def test_load_data_with_multiple_files(self, mock_llm_client, sample_dataframe):
         """Test loading multiple DataFrames."""
         with patch("src.chat_agent.Agent") as mock_agent_class:
             mock_agent_instance = MagicMock()
@@ -127,9 +125,7 @@ class TestPandasAIAgent:
         assert "No data loaded" in response.content
         assert response.type == "error"
 
-    def test_query_with_dataframe_response(
-        self, mock_llm_client, sample_dataframe
-    ):
+    def test_query_with_dataframe_response(self, mock_llm_client, sample_dataframe):
         """Test query returning DataFrame."""
         with patch("src.chat_agent.Agent") as mock_agent_class:
             mock_agent_instance = MagicMock()
@@ -137,20 +133,22 @@ class TestPandasAIAgent:
             mock_agent_class.return_value = mock_agent_instance
 
             agent = PandasAIAgent(llm_client=mock_llm_client)
-            agent.load_data([LoadedData(
-                data=sample_dataframe,
-                filename="test.xlsx",
-                sheet_name="Sheet1",
-            )])
+            agent.load_data(
+                [
+                    LoadedData(
+                        data=sample_dataframe,
+                        filename="test.xlsx",
+                        sheet_name="Sheet1",
+                    )
+                ]
+            )
 
             response = agent.query("What is the average sales?")
 
             assert response.success is True
             assert response.type == "dataframe"
 
-    def test_query_with_text_response(
-        self, mock_llm_client, sample_dataframe
-    ):
+    def test_query_with_text_response(self, mock_llm_client, sample_dataframe):
         """Test query returning text response."""
         with patch("src.chat_agent.Agent") as mock_agent_class:
             mock_agent_instance = MagicMock()
@@ -158,11 +156,15 @@ class TestPandasAIAgent:
             mock_agent_class.return_value = mock_agent_instance
 
             agent = PandasAIAgent(llm_client=mock_llm_client)
-            agent.load_data([LoadedData(
-                data=sample_dataframe,
-                filename="test.xlsx",
-                sheet_name="Sheet1",
-            )])
+            agent.load_data(
+                [
+                    LoadedData(
+                        data=sample_dataframe,
+                        filename="test.xlsx",
+                        sheet_name="Sheet1",
+                    )
+                ]
+            )
 
             response = agent.query("What is the average sales?")
 
@@ -178,11 +180,15 @@ class TestPandasAIAgent:
             mock_agent_class.return_value = mock_agent_instance
 
             agent = PandasAIAgent(llm_client=mock_llm_client)
-            agent.load_data([LoadedData(
-                data=sample_dataframe,
-                filename="test.xlsx",
-                sheet_name="Sheet1",
-            )])
+            agent.load_data(
+                [
+                    LoadedData(
+                        data=sample_dataframe,
+                        filename="test.xlsx",
+                        sheet_name="Sheet1",
+                    )
+                ]
+            )
 
             response = agent.query("Invalid query")
 
@@ -206,6 +212,26 @@ class TestPandasAIAgent:
         mock_chart.figure = "figure"
 
         result = agent._detect_response_type(mock_chart)
+
+        assert result == "chart"
+
+    def test_detect_response_type_matplotlib_figure(self, mock_llm_client):
+        """Test response type detection for matplotlib Figure."""
+        import matplotlib.pyplot as plt
+
+        agent = PandasAIAgent(llm_client=mock_llm_client)
+        fig = plt.figure()
+
+        result = agent._detect_response_type(fig)
+
+        assert result == "chart"
+        plt.close(fig)
+
+    def test_detect_response_type_chart_path(self, mock_llm_client):
+        """Test response type detection for chart file path."""
+        agent = PandasAIAgent(llm_client=mock_llm_client)
+
+        result = agent._detect_response_type("exports/charts/plot.png")
 
         assert result == "chart"
 
@@ -241,11 +267,13 @@ class TestPandasAIAgent:
 
         assert agent.is_data_loaded() is False
 
-        agent.loaded_data = [LoadedData(
-            data=pd.DataFrame({"a": [1]}),
-            filename="test.xlsx",
-            sheet_name="Sheet1",
-        )]
+        agent.loaded_data = [
+            LoadedData(
+                data=pd.DataFrame({"a": [1]}),
+                filename="test.xlsx",
+                sheet_name="Sheet1",
+            )
+        ]
         agent.agent = MagicMock()
 
         assert agent.is_data_loaded() is True

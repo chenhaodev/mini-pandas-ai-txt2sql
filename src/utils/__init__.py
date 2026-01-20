@@ -1,5 +1,10 @@
-"""Utility modules for session state management."""
+"""Utility modules for session state management and font configuration."""
 
+from .font_config import (
+    configure_matplotlib_fonts,
+    get_chinese_font,
+    get_font_warning,
+)
 from .session import (
     add_message,
     clear_chat_history,
@@ -24,4 +29,7 @@ __all__ = [
     "get_api_key",
     "set_model",
     "get_model",
+    "configure_matplotlib_fonts",
+    "get_chinese_font",
+    "get_font_warning",
 ]

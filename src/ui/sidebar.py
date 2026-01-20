@@ -15,6 +15,8 @@ def render_sidebar(
     on_model_change: Optional[Callable[[str], None]] = None,
     on_file_upload: Optional[Callable[[list], None]] = None,
     on_clear_chat: Optional[Callable[[], None]] = None,
+    on_auto_insights: Optional[Callable[[], None]] = None,
+    has_data: bool = False,
 ) -> list:
     """Render the sidebar with file upload and settings.
 
@@ -25,6 +27,8 @@ def render_sidebar(
         on_model_change: Callback when model changes.
         on_file_upload: Callback when files are uploaded.
         on_clear_chat: Callback when clear chat is clicked.
+        on_auto_insights: Callback when auto insights is clicked.
+        has_data: Whether data is currently loaded.
 
     Returns:
         list: List of uploaded file objects.
@@ -48,7 +52,9 @@ def render_sidebar(
         model_input = st.selectbox(
             "Model",
             options=model_options,
-            index=model_options.index(config_model) if config_model in model_options else 0,
+            index=model_options.index(config_model)
+            if config_model in model_options
+            else 0,
             help="deepseek-chat: Standard mode | deepseek-reasoner: Thinking mode",
         )
 
@@ -79,8 +85,22 @@ def render_sidebar(
 
         st.divider()
 
-        # Reason: Clear chat button
+        # Reason: Action buttons
         st.header("Actions")
+
+        # Reason: Auto insights button
+        if st.button(
+            "🔍 Generate Auto Insights",
+            use_container_width=True,
+            disabled=not has_data,
+            help="Automatically generate statistics and visualizations"
+            if has_data
+            else "Upload data first",
+        ):
+            if on_auto_insights:
+                on_auto_insights()
+
+        # Reason: Clear chat button
         if st.button("Clear Chat History", use_container_width=True):
             if on_clear_chat:
                 on_clear_chat()
@@ -89,8 +109,11 @@ def render_sidebar(
         st.divider()
 
         # Reason: Display example queries
-        with st.expander("Example Queries"):
+        with st.expander("💡 Example Queries"):
             st.markdown("""
+            **Quick Start:**
+            - Click "🔍 Generate Auto Insights" for automatic analysis
+            
             **Simple Queries:**
             - How many rows are in the data?
             - What are the column names?

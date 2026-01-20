@@ -85,6 +85,10 @@ class PandasAIAgent:
                     "save_logs": self.save_logs,
                     "verbose": False,
                     "max_retries": 3,
+                    "enable_cache": True,
+                    "save_charts": True,
+                    "save_charts_path": "exports/charts",
+                    "open_charts": False,
                 },
             )
             logger.info(f"Loaded {len(loaded_files)} DataFrames into PandasAI Agent")
@@ -139,16 +143,37 @@ class PandasAIAgent:
         Returns:
             str: The response type (dataframe, chart, or text).
         """
+        import matplotlib.figure
+
         # Reason: Check for DataFrame (tabular data)
         if isinstance(result, pd.DataFrame):
             return "dataframe"
 
-        # Reason: Check for matplotlib figure or chart object
-        if hasattr(result, "figure") or hasattr(result, "plot"):
+        # Reason: Check for matplotlib Figure object
+        if isinstance(result, matplotlib.figure.Figure):
             return "chart"
 
-        # Reason: Check for common chart library objects
-        if hasattr(result, "show") and hasattr(result, "savefig"):
+        # Reason: Check for matplotlib Axes object
+        if hasattr(result, "figure"):
+            return "chart"
+
+        # Reason: Check for plotly figures
+        try:
+            import plotly.graph_objs as go
+
+            if isinstance(result, (go.Figure, go.Scatter, go.Bar)):
+                return "chart"
+        except ImportError:
+            pass
+
+        # Reason: Check for seaborn objects (returns matplotlib axes)
+        if hasattr(result, "get_figure"):
+            return "chart"
+
+        # Reason: Check if result is a file path to a saved chart
+        if isinstance(result, str) and any(
+            result.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".svg", ".pdf"]
+        ):
             return "chart"
 
         # Default to text

@@ -76,7 +76,11 @@ def _display_message(message: dict) -> None:
         elif type_ == "error":
             st.error(str(content))
         else:
-            st.write(content)
+            # Reason: Check if content is markdown (starts with #)
+            if isinstance(content, str) and content.strip().startswith("#"):
+                st.markdown(content)
+            else:
+                st.write(content)
 
 
 def _display_response(response) -> None:
@@ -103,24 +107,113 @@ def _display_response(response) -> None:
 
 
 def _display_chart(chart_obj) -> None:
-    """Display a chart/plot object.
+    """Display a chart/plot object with download option.
 
     Args:
         chart_obj: The chart object to display.
     """
+    import io
+    from pathlib import Path
+
     try:
-        # Reason: Check if it's a matplotlib figure
-        if hasattr(chart_obj, "figure"):
-            st.pyplot(chart_obj.figure)
-        # Reason: Check for matplotlib pyplot state
-        elif hasattr(chart_obj, "savefig"):
+        # Reason: Check if it's a file path string (PandasAI saves charts)
+        if isinstance(chart_obj, str) and Path(chart_obj).exists():
+            st.image(chart_obj, use_column_width=True)
+            # Add download button
+            with open(chart_obj, "rb") as f:
+                st.download_button(
+                    label="Download Chart",
+                    data=f.read(),
+                    file_name=Path(chart_obj).name,
+                    mime="image/png",
+                )
+            return
+
+        # Reason: Check for matplotlib Figure object
+        import matplotlib.figure
+
+        if isinstance(chart_obj, matplotlib.figure.Figure):
             st.pyplot(chart_obj)
+            # Add download button for matplotlib
+            buf = io.BytesIO()
+            chart_obj.savefig(buf, format="png", bbox_inches="tight")
+            buf.seek(0)
+            st.download_button(
+                label="Download Chart",
+                data=buf,
+                file_name="chart.png",
+                mime="image/png",
+            )
+            return
+
+        # Reason: Check if it's a matplotlib Axes object
+        if hasattr(chart_obj, "figure"):
+            fig = chart_obj.figure
+            st.pyplot(fig)
+            # Add download button
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png", bbox_inches="tight")
+            buf.seek(0)
+            st.download_button(
+                label="Download Chart",
+                data=buf,
+                file_name="chart.png",
+                mime="image/png",
+            )
+            return
+
+        # Reason: Check for matplotlib pyplot state
+        if hasattr(chart_obj, "savefig"):
+            st.pyplot(chart_obj)
+            buf = io.BytesIO()
+            chart_obj.savefig(buf, format="png", bbox_inches="tight")
+            buf.seek(0)
+            st.download_button(
+                label="Download Chart",
+                data=buf,
+                file_name="chart.png",
+                mime="image/png",
+            )
+            return
+
         # Reason: Check for plotly figures
-        elif hasattr(chart_obj, "show"):
-            st.plotly_chart(chart_obj, use_container_width=True)
-        else:
-            # Reason: Fallback - try to display as generic object
-            st.write(chart_obj)
+        try:
+            import plotly.graph_objs as go
+
+            if isinstance(chart_obj, (go.Figure, go.Scatter, go.Bar)):
+                st.plotly_chart(chart_obj, use_container_width=True)
+                # Add download button for plotly
+                buf = io.BytesIO()
+                chart_obj.write_image(buf, format="png")
+                buf.seek(0)
+                st.download_button(
+                    label="Download Chart",
+                    data=buf,
+                    file_name="chart.png",
+                    mime="image/png",
+                )
+                return
+        except ImportError:
+            pass
+
+        # Reason: Check for seaborn objects (returns matplotlib axes)
+        if hasattr(chart_obj, "get_figure"):
+            fig = chart_obj.get_figure()
+            st.pyplot(fig)
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png", bbox_inches="tight")
+            buf.seek(0)
+            st.download_button(
+                label="Download Chart",
+                data=buf,
+                file_name="chart.png",
+                mime="image/png",
+            )
+            return
+
+        # Reason: Fallback - try to display as generic object
+        st.write(chart_obj)
+
     except Exception as e:
         logger.error(f"Failed to display chart: {e}", exc_info=True)
         st.warning(f"Could not display chart: {e}")

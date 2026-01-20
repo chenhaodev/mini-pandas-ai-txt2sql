@@ -11,19 +11,23 @@ src_path = Path(__file__).parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from src.config import get_config
-from src.llm_client import DeepSeekClient
-from src.data_loader import load_excel_files
+from src.auto_insights import AutoInsight
 from src.chat_agent import PandasAIAgent
+from src.config import get_config
+from src.data_loader import load_excel_files
+from src.llm_client import DeepSeekClient
+from src.ui import render_chat_interface, render_sidebar
 from src.utils import (
+    add_message,
+    clear_chat_history,
+    configure_matplotlib_fonts,
+    get_api_key,
+    get_font_warning,
+    get_model,
     init_session_state,
     set_api_key,
     set_model,
-    get_api_key,
-    get_model,
-    clear_chat_history,
 )
-from src.ui import render_sidebar, render_chat_interface
 
 # Reason: Configure logging
 logging.basicConfig(
@@ -31,6 +35,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Reason: Configure matplotlib for Chinese character support
+configured_font = configure_matplotlib_fonts()
 
 
 def main() -> None:
@@ -53,6 +60,10 @@ def main() -> None:
 
     # Reason: Initialize session state
     init_session_state()
+
+    # Reason: Show warning if Chinese font is not available
+    if not configured_font:
+        st.warning(get_font_warning())
 
     # Reason: Get or use session API key
     api_key = get_api_key() or config.deepseek_api_key
@@ -98,6 +109,37 @@ def main() -> None:
         clear_chat_history()
         logger.info("Chat history cleared")
 
+    def on_auto_insights() -> None:
+        """Handle auto insights generation."""
+        if not chat_agent.is_data_loaded():
+            st.error("Please upload data files first.")
+            return
+
+        try:
+            with st.spinner("🔍 Generating auto insights..."):
+                # Reason: Get DataFrames from loaded data
+                dataframes = [ld.data for ld in chat_agent.loaded_data]
+                names = [ld.filename for ld in chat_agent.loaded_data]
+
+                # Reason: Generate insights
+                auto_insight = AutoInsight(dataframes, names)
+                report = auto_insight.generate_full_report()
+
+                # Reason: Add insights text to chat
+                add_message("user", "Generate auto insights", "text")
+                add_message("assistant", report["insights_text"], "text")
+
+                # Reason: Add visualizations to chat
+                for viz in report["visualizations"]:
+                    add_message("assistant", viz["figure"], "chart")
+
+                logger.info(f"Generated {len(report['visualizations'])} visualizations")
+                st.rerun()
+
+        except Exception as e:
+            st.error(f"Failed to generate insights: {e}")
+            logger.error(f"Auto insights error: {e}", exc_info=True)
+
     # Reason: Render sidebar
     uploaded_files = render_sidebar(
         config_api_key=api_key,
@@ -106,6 +148,8 @@ def main() -> None:
         on_model_change=on_model_change,
         on_file_upload=on_file_upload,
         on_clear_chat=on_clear_chat,
+        on_auto_insights=on_auto_insights,
+        has_data=chat_agent.is_data_loaded(),
     )
 
     # Reason: Render main content area
@@ -123,12 +167,14 @@ def main() -> None:
         with st.expander("📋 Data Summary", expanded=False):
             for i, summary in enumerate(chat_agent.get_data_summary()):
                 st.write(f"**File {i + 1}:**")
-                st.json({
-                    "Rows": summary["rows"],
-                    "Columns": summary["columns"],
-                    "Column Names": summary["column_names"],
-                    "Has Null Values": summary["has_nulls"],
-                })
+                st.json(
+                    {
+                        "Rows": summary["rows"],
+                        "Columns": summary["columns"],
+                        "Column Names": summary["column_names"],
+                        "Has Null Values": summary["has_nulls"],
+                    }
+                )
 
         st.divider()
 

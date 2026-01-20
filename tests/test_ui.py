@@ -170,10 +170,16 @@ class TestDisplayChart:
 
     def test_display_plotly_figure(self):
         """Test displaying a plotly figure."""
-        with patch("streamlit.plotly_chart") as mock_plotly:
+        with (
+            patch("streamlit.plotly_chart") as mock_plotly,
+            patch("streamlit.download_button") as mock_download,
+        ):
+            import plotly.graph_objs as go
+
             from src.ui.chat import _display_chart
 
-            mock_chart = MagicMock(spec=["show"])
+            # Create a real plotly figure
+            mock_chart = go.Figure(data=[go.Scatter(x=[1, 2, 3], y=[4, 5, 6])])
 
             _display_chart(mock_chart)
 
