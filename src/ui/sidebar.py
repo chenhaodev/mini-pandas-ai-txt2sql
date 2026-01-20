@@ -72,8 +72,20 @@ def render_sidebar(
             help="Upload Excel (.xlsx, .xls) or CSV (.csv) files to analyze.",
         )
 
-        if on_file_upload and uploaded_files:
+        # Reason: Track previous upload state to detect new uploads
+        prev_files_key = "prev_uploaded_files"
+        if prev_files_key not in st.session_state:
+            st.session_state[prev_files_key] = []
+
+        # Check if files changed
+        current_file_names = [f.name for f in uploaded_files] if uploaded_files else []
+        prev_file_names = st.session_state[prev_files_key]
+        files_changed = current_file_names != prev_file_names
+
+        if on_file_upload and uploaded_files and files_changed:
             on_file_upload(uploaded_files)
+            st.session_state[prev_files_key] = current_file_names
+            st.rerun()
 
         # Reason: Display uploaded files summary
         if uploaded_files:
