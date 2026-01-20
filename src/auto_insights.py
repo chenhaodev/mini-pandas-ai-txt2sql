@@ -132,14 +132,26 @@ class AutoInsight:
 
             # Reason: Correlation heatmap if multiple numeric columns
             if len(numeric_cols) > 1:
-                fig, ax = plt.subplots(figsize=(10, 8))
+                fig, ax = plt.subplots(figsize=(12, 10))
                 # Limit to first 10 numeric columns for readability
                 cols_to_plot = numeric_cols[:10]
                 corr = df[cols_to_plot].corr()
                 sns.heatmap(
-                    corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax, center=0
+                    corr,
+                    annot=True,
+                    fmt=".2f",
+                    cmap="coolwarm",
+                    ax=ax,
+                    center=0,
+                    square=True,
+                    xticklabels=corr.columns,
+                    yticklabels=corr.columns,
+                    cbar_kws={"shrink": 0.8},
                 )
-                ax.set_title("Correlation Matrix")
+                ax.set_title("Correlation Matrix", pad=20)
+                # Rotate labels for better readability
+                plt.xticks(rotation=45, ha="right")
+                plt.yticks(rotation=0)
                 plt.tight_layout()
 
                 visualizations.append(
