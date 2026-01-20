@@ -10,6 +10,21 @@ import seaborn as sns
 
 logger = logging.getLogger(__name__)
 
+# Configuration constants for visualization generation
+MAX_HISTOGRAM_COLS = 6
+MAX_CATEGORICAL_COLS = 3
+MAX_TRENDING_COLS = 2
+MAX_CORRELATION_COLS = 10
+ID_CARDINALITY_THRESHOLD = 0.95
+NAN_THRESHOLD_CORRELATION = 0.8
+MIN_VALID_VALUES = 3
+LARGE_DATASET_THRESHOLD = 100
+TREND_SCORE_MULTIPLIER = 30
+CORRELATION_MAX_WEIGHT = 50
+CORRELATION_AVG_WEIGHT = 20
+SKEWNESS_WEIGHT = 10
+CATEGORICAL_DIVERSITY_WEIGHT = 5
+
 
 class AutoInsight:
     """Generate automatic insights and visualizations from DataFrames."""
