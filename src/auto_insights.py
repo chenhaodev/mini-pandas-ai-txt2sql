@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -93,12 +94,19 @@ class AutoInsight:
                     ax.set_ylabel("Frequency")
                     plt.tight_layout()
 
+                    # Calculate interestingness score
+                    variance_score = df[col].var() / (df[col].std() + 1e-10)
+                    skewness = abs(df[col].skew()) if len(df[col].dropna()) > 0 else 0
+                    score = variance_score + skewness * 10
+
                     visualizations.append(
                         {
                             "type": "histogram",
                             "title": f"{name} - Distribution of {col}",
                             "figure": fig,
                             "column": col,
+                            "category": "distribution",
+                            "score": float(score),
                         }
                     )
 
@@ -121,14 +129,80 @@ class AutoInsight:
                         plt.xticks(rotation=45, ha="right")
                         plt.tight_layout()
 
+                        # Calculate interestingness score for categorical
+                        entropy = -(
+                            value_counts
+                            / value_counts.sum()
+                            * np.log2(value_counts / value_counts.sum() + 1e-10)
+                        ).sum()
+                        imbalance = value_counts.max() / value_counts.sum()
+                        score = entropy + (1 - imbalance) * 5
+
                         visualizations.append(
                             {
                                 "type": "bar",
                                 "title": f"{name} - Top Values in {col}",
                                 "figure": fig,
                                 "column": col,
+                                "category": "categorical",
+                                "score": float(score),
                             }
                         )
+
+            # Reason: Detect and visualize time-series trends
+            date_cols = df.select_dtypes(include=["datetime64"]).columns.tolist()
+            # Also check for columns that might be dates but stored as strings
+            for col in df.select_dtypes(include=["object"]).columns:
+                try:
+                    pd.to_datetime(df[col], errors="raise")
+                    date_cols.append(col)
+                except (ValueError, TypeError):
+                    pass
+
+            if len(date_cols) > 0 and len(numeric_cols) > 0:
+                # Show trends for up to 2 numeric columns over time
+                date_col = date_cols[0]
+                df_time = df.copy()
+                if df_time[date_col].dtype == "object":
+                    df_time[date_col] = pd.to_datetime(df_time[date_col])
+
+                for num_col in numeric_cols[:2]:
+                    fig, ax = plt.subplots(figsize=(12, 6))
+                    df_sorted = df_time.sort_values(date_col)
+                    ax.plot(
+                        df_sorted[date_col], df_sorted[num_col], marker="o", linewidth=2
+                    )
+                    ax.set_title(f"Trend of {num_col} over {date_col}")
+                    ax.set_xlabel(date_col)
+                    ax.set_ylabel(num_col)
+                    plt.xticks(rotation=45, ha="right")
+                    plt.grid(True, alpha=0.3)
+                    plt.tight_layout()
+
+                    # Calculate trend score
+                    try:
+                        from scipy import stats
+
+                        x_numeric = (
+                            df_sorted[date_col] - df_sorted[date_col].min()
+                        ).dt.total_seconds()
+                        slope, _, r_value, _, _ = stats.linregress(
+                            x_numeric, df_sorted[num_col].fillna(0)
+                        )
+                        trend_score = abs(r_value) * 30
+                    except Exception:
+                        trend_score = 10.0
+
+                    visualizations.append(
+                        {
+                            "type": "line",
+                            "title": f"{name} - Trend of {num_col}",
+                            "figure": fig,
+                            "column": num_col,
+                            "category": "trending",
+                            "score": float(trend_score),
+                        }
+                    )
 
             # Reason: Correlation heatmap if multiple numeric columns
             if len(numeric_cols) > 1:
@@ -154,12 +228,20 @@ class AutoInsight:
                 plt.yticks(rotation=0)
                 plt.tight_layout()
 
+                # Calculate interestingness score for correlation
+                corr_values = corr.values[np.triu_indices_from(corr.values, k=1)]
+                max_corr = np.max(np.abs(corr_values)) if len(corr_values) > 0 else 0
+                avg_corr = np.mean(np.abs(corr_values)) if len(corr_values) > 0 else 0
+                score = max_corr * 50 + avg_corr * 20
+
                 visualizations.append(
                     {
                         "type": "heatmap",
                         "title": f"{name} - Correlation Matrix",
                         "figure": fig,
                         "column": None,
+                        "category": "correlation",
+                        "score": float(score),
                     }
                 )
 
@@ -228,8 +310,26 @@ class AutoInsight:
         visualizations = self.generate_visualizations()
         insights_text = self.generate_insights_text(summaries)
 
+        # Sort visualizations by score (highest first)
+        visualizations_sorted = sorted(
+            visualizations, key=lambda x: x.get("score", 0), reverse=True
+        )
+
+        # Organize by category
+        viz_by_category = {
+            "trending": [],
+            "correlation": [],
+            "distribution": [],
+            "categorical": [],
+        }
+
+        for viz in visualizations_sorted:
+            category = viz.get("category", "distribution")
+            viz_by_category[category].append(viz)
+
         return {
             "insights_text": insights_text,
-            "visualizations": visualizations,
+            "visualizations": visualizations_sorted,
+            "visualizations_by_category": viz_by_category,
             "summaries": summaries,
         }

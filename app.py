@@ -139,11 +139,39 @@ def main() -> None:
                 add_message("user", "Generate auto insights", "text")
                 add_message("assistant", report["insights_text"], "text")
 
-                # Reason: Add visualizations to chat
+                # Reason: Organize and display visualizations by category with tabs
+                viz_by_cat = report["visualizations_by_category"]
+
+                # Show summary of what was found
+                summary_msg = "**Auto Insights Generated:**\n\n"
+                if viz_by_cat["trending"]:
+                    summary_msg += (
+                        f"- 📈 {len(viz_by_cat['trending'])} Trending Analysis\n"
+                    )
+                if viz_by_cat["correlation"]:
+                    summary_msg += (
+                        f"- 🔗 {len(viz_by_cat['correlation'])} Correlation Analysis\n"
+                    )
+                if viz_by_cat["distribution"]:
+                    summary_msg += f"- 📊 {len(viz_by_cat['distribution'])} Distribution Analysis\n"
+                if viz_by_cat["categorical"]:
+                    summary_msg += (
+                        f"- 📋 {len(viz_by_cat['categorical'])} Categorical Analysis\n"
+                    )
+
+                add_message("assistant", summary_msg, "text")
+
+                # Add visualizations in priority order
                 for viz in report["visualizations"]:
                     add_message("assistant", viz["figure"], "chart")
 
-                logger.info(f"Generated {len(report['visualizations'])} visualizations")
+                logger.info(
+                    f"Generated {len(report['visualizations'])} visualizations "
+                    f"({len(viz_by_cat['trending'])} trending, "
+                    f"{len(viz_by_cat['correlation'])} correlation, "
+                    f"{len(viz_by_cat['distribution'])} distribution, "
+                    f"{len(viz_by_cat['categorical'])} categorical)"
+                )
                 st.rerun()
 
         except Exception as e:

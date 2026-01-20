@@ -221,3 +221,79 @@ class TestAutoInsight:
         # Should not create bar chart for high cardinality column
         bar_viz = [v for v in visualizations if v["type"] == "bar"]
         assert len(bar_viz) == 0  # High cardinality column skipped
+
+    def test_interestingness_scoring(self):
+        """Test that visualizations have interestingness scores."""
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5],
+                "B": [10, 20, 30, 40, 50],
+                "Category": ["X", "Y", "X", "Y", "X"],
+            }
+        )
+
+        insight = AutoInsight([df])
+        visualizations = insight.generate_visualizations()
+
+        # All visualizations should have scores
+        for viz in visualizations:
+            assert "score" in viz
+            assert isinstance(viz["score"], (int, float))
+            assert viz["score"] >= 0
+
+    def test_visualizations_sorted_by_score(self):
+        """Test that full report sorts visualizations by score."""
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5],
+                "B": [10, 20, 30, 40, 50],
+                "C": [100, 200, 300, 400, 500],
+            }
+        )
+
+        insight = AutoInsight([df])
+        report = insight.generate_full_report()
+
+        # Check that visualizations are sorted by score (descending)
+        scores = [v["score"] for v in report["visualizations"]]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_visualizations_organized_by_category(self):
+        """Test that visualizations are organized by category."""
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5],
+                "B": [10, 20, 30, 40, 50],
+                "Category": ["X", "Y", "X", "Y", "X"],
+            }
+        )
+
+        insight = AutoInsight([df])
+        report = insight.generate_full_report()
+
+        # Check that visualizations_by_category exists
+        assert "visualizations_by_category" in report
+        viz_by_cat = report["visualizations_by_category"]
+
+        # Check expected categories
+        assert "distribution" in viz_by_cat
+        assert "correlation" in viz_by_cat
+        assert "categorical" in viz_by_cat
+        assert "trending" in viz_by_cat
+
+        # Each category should be a list
+        for category, viz_list in viz_by_cat.items():
+            assert isinstance(viz_list, list)
+
+    def test_trending_analysis_with_dates(self):
+        """Test trending analysis for time-series data."""
+        dates = pd.date_range("2023-01-01", periods=10, freq="D")
+        df = pd.DataFrame({"Date": dates, "Value": range(10, 20)})
+
+        insight = AutoInsight([df])
+        visualizations = insight.generate_visualizations()
+
+        # Should create trending visualization
+        trend_viz = [v for v in visualizations if v["type"] == "line"]
+        assert len(trend_viz) > 0
+        assert trend_viz[0]["category"] == "trending"
