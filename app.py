@@ -23,9 +23,11 @@ from src.utils import (
     configure_matplotlib_fonts,
     get_api_key,
     get_font_warning,
+    get_loaded_data,
     get_model,
     init_session_state,
     set_api_key,
+    set_loaded_data,
     set_model,
 )
 
@@ -83,6 +85,12 @@ def main() -> None:
     # Reason: Initialize PandasAI agent
     chat_agent = PandasAIAgent(llm_client=llm_client)
 
+    # Reason: Reload data from session state if available
+    loaded_data = get_loaded_data()
+    if loaded_data:
+        chat_agent.load_data(loaded_data)
+        logger.info(f"Reloaded {len(loaded_data)} DataFrames from session state")
+
     # Reason: Handle callback functions
     def on_api_key_change(new_key: str) -> None:
         """Handle API key change."""
@@ -99,6 +107,7 @@ def main() -> None:
         try:
             loaded_data = load_excel_files(uploaded_files)
             chat_agent.load_data(loaded_data)
+            set_loaded_data(loaded_data)
             logger.info(f"Loaded {len(loaded_data)} Excel files")
         except Exception as e:
             st.error(f"Failed to load files: {e}")
@@ -107,7 +116,8 @@ def main() -> None:
     def on_clear_chat() -> None:
         """Handle chat clear."""
         clear_chat_history()
-        logger.info("Chat history cleared")
+        set_loaded_data([])
+        logger.info("Chat history and loaded data cleared")
 
     def on_auto_insights() -> None:
         """Handle auto insights generation."""

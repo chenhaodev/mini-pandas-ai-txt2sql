@@ -196,6 +196,59 @@ class TestUploadedFilesFunctions:
             assert len(files) == 1
 
 
+class TestLoadedDataFunctions:
+    """Tests for loaded data (DataFrames) management functions."""
+
+    def test_set_loaded_data(self):
+        """Test setting loaded data in session state."""
+        mock_session_state = {"loaded_data": []}
+
+        with patch("streamlit.session_state", mock_session_state):
+            from src.utils.session import set_loaded_data
+
+            mock_data = [{"data": "test", "filename": "test.csv"}]
+            set_loaded_data(mock_data)
+
+            assert len(mock_session_state["loaded_data"]) == 1
+            assert mock_session_state["loaded_data"][0]["filename"] == "test.csv"
+
+    def test_get_loaded_data(self):
+        """Test getting loaded data from session state."""
+        mock_data = [{"data": "test", "filename": "test.csv"}]
+        mock_session_state = {"loaded_data": mock_data}
+
+        with patch("streamlit.session_state", mock_session_state):
+            from src.utils.session import get_loaded_data
+
+            loaded = get_loaded_data()
+
+            assert len(loaded) == 1
+            assert loaded[0]["filename"] == "test.csv"
+
+    def test_set_loaded_data_empty_list(self):
+        """Test setting loaded data to empty list."""
+        mock_session_state = {"loaded_data": [{"data": "test"}]}
+
+        with patch("streamlit.session_state", mock_session_state):
+            from src.utils.session import get_loaded_data, set_loaded_data
+
+            # Clear with empty list
+            set_loaded_data([])
+
+            assert len(mock_session_state["loaded_data"]) == 0
+            assert get_loaded_data() == []
+
+    def test_get_loaded_data_when_missing(self):
+        """Test getting loaded data when key is missing."""
+        mock_session_state = {}
+
+        with patch("streamlit.session_state", mock_session_state):
+            from src.utils.session import get_loaded_data
+
+            # Should return empty list when key is missing
+            assert get_loaded_data() == []
+
+
 class TestApiKeyFunctions:
     """Tests for API key management functions."""
 
@@ -302,10 +355,12 @@ class TestUtilsExports:
             clear_chat_history,
             get_api_key,
             get_chat_history,
+            get_loaded_data,
             get_model,
             get_uploaded_files,
             init_session_state,
             set_api_key,
+            set_loaded_data,
             set_model,
             set_uploaded_files,
         )
@@ -317,6 +372,8 @@ class TestUtilsExports:
         assert callable(clear_chat_history)
         assert callable(set_uploaded_files)
         assert callable(get_uploaded_files)
+        assert callable(set_loaded_data)
+        assert callable(get_loaded_data)
         assert callable(set_api_key)
         assert callable(get_api_key)
         assert callable(set_model)

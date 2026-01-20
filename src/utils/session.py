@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 # Session state keys
 KEY_MESSAGES = "messages"
 KEY_UPLOADED_FILES = "uploaded_files"
+KEY_LOADED_DATA = "loaded_data"
 KEY_API_KEY = "api_key"
 KEY_MODEL = "model"
 
@@ -27,6 +28,10 @@ def init_session_state() -> None:
     # Reason: Initialize uploaded files list
     if KEY_UPLOADED_FILES not in st.session_state:
         st.session_state[KEY_UPLOADED_FILES] = []
+
+    # Reason: Initialize loaded data (DataFrames)
+    if KEY_LOADED_DATA not in st.session_state:
+        st.session_state[KEY_LOADED_DATA] = []
 
     # Reason: Initialize API key (may be empty if using .env)
     if KEY_API_KEY not in st.session_state:
@@ -100,6 +105,29 @@ def get_uploaded_files() -> List[Any]:
     import streamlit as st
 
     return st.session_state.get(KEY_UPLOADED_FILES, [])
+
+
+def set_loaded_data(loaded_data: List[Any]) -> None:
+    """Set loaded data (DataFrames) in session state.
+
+    Args:
+        loaded_data: List of LoadedData objects with DataFrames.
+    """
+    import streamlit as st
+
+    st.session_state[KEY_LOADED_DATA] = loaded_data
+    logger.info(f"Set {len(loaded_data)} loaded DataFrames in session state")
+
+
+def get_loaded_data() -> List[Any]:
+    """Get loaded data (DataFrames) from session state.
+
+    Returns:
+        List[Any]: List of LoadedData objects with DataFrames.
+    """
+    import streamlit as st
+
+    return st.session_state.get(KEY_LOADED_DATA, [])
 
 
 def set_api_key(api_key: str) -> None:
