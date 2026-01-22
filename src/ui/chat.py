@@ -77,6 +77,10 @@ def _display_message(message: dict, message_idx: int = 0) -> None:
             st.dataframe(content, use_container_width=True)
         elif type_ == "chart":
             _display_chart(content, key_suffix=f"msg_{message_idx}")
+        elif type_ == "auto_insights":
+            _display_auto_insights(content, key_suffix=f"msg_{message_idx}")
+        elif type_ == "deep_insights":
+            _display_deep_insights(content, key_suffix=f"msg_{message_idx}")
         elif type_ == "error":
             st.error(str(content))
         else:
@@ -102,6 +106,10 @@ def _display_response(response, key_suffix: str = "new") -> None:
         st.dataframe(response.content, use_container_width=True)
     elif response.type == "chart":
         _display_chart(response.content, key_suffix=key_suffix)
+    elif response.type == "auto_insights":
+        _display_auto_insights(response.content, key_suffix=key_suffix)
+    elif response.type == "deep_insights":
+        _display_deep_insights(response.content, key_suffix=key_suffix)
     elif response.explanation:
         # Reason: Show explanation if available
         st.markdown(response.explanation)
@@ -228,6 +236,72 @@ def _display_chart(chart_obj, key_suffix: str = "") -> None:
         logger.error(f"Failed to display chart: {e}", exc_info=True)
         st.warning(f"Could not display chart: {e}")
         st.write(chart_obj)
+
+
+def _display_auto_insights(content: dict, key_suffix: str = "") -> None:
+    """Display auto-generated insights with text and visualizations.
+
+    Args:
+        content: Dictionary with 'text', 'visualizations', and 'summaries' keys.
+        key_suffix: Unique suffix for widget keys.
+    """
+    import matplotlib.pyplot as plt
+
+    # Reason: Display the insights text
+    if isinstance(content, dict):
+        text = content.get("text", "")
+        visualizations = content.get("visualizations", [])
+
+        if text:
+            st.markdown(text)
+
+        # Reason: Display visualizations in expandable sections
+        if visualizations:
+            st.markdown("### Visualizations")
+            # Show top 4 most interesting visualizations
+            for idx, viz in enumerate(visualizations[:4]):
+                title = viz.get("title", f"Chart {idx + 1}")
+                fig = viz.get("figure")
+
+                with st.expander(title, expanded=(idx < 2)):
+                    if fig is not None:
+                        _display_chart(fig, key_suffix=f"{key_suffix}_viz_{idx}")
+                    else:
+                        st.write("Chart not available")
+
+            # Reason: Close all figures to prevent memory warnings
+            plt.close("all")
+    else:
+        # Fallback for unexpected content format
+        st.write(str(content))
+
+
+def _display_deep_insights(content: dict, key_suffix: str = "") -> None:
+    """Display deep insights with hypothesis testing results.
+
+    Args:
+        content: Dictionary with 'text', 'hypotheses_results', etc.
+        key_suffix: Unique suffix for widget keys.
+    """
+    if isinstance(content, dict):
+        text = content.get("text", "")
+        hypothesis_count = content.get("hypothesis_count", 0)
+        successful_count = content.get("successful_count", 0)
+
+        # Reason: Show summary metrics
+        if hypothesis_count > 0:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Hypotheses Tested", hypothesis_count)
+            with col2:
+                st.metric("Successfully Analyzed", successful_count)
+
+        # Reason: Display the insights text (markdown formatted)
+        if text:
+            st.markdown(text)
+    else:
+        # Fallback for unexpected content format
+        st.write(str(content))
 
 
 def render_welcome_message(has_data: bool) -> None:

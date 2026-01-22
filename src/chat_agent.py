@@ -5,11 +5,37 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from pandasai import Agent
+from pandasai.exceptions import NoCodeFoundError, NoResultFoundError
 
+from .auto_insights import AutoInsight
 from .data_loader import LoadedData
+from .deep_insights import DeepInsightGenerator
 from .llm_client import DeepSeekClient
 
 logger = logging.getLogger(__name__)
+
+# Keywords that indicate user is asking for general insights
+INSIGHT_KEYWORDS = [
+    # English
+    "insight",
+    "insights",
+    "summary",
+    "summarize",
+    "overview",
+    "describe",
+    "tell me about",
+    "analyze",
+    "analysis",
+    "what can you tell",
+    "explore",
+    # Chinese
+    "分析",
+    "洞察",
+    "概述",
+    "总结",
+    "概览",
+    "描述",
+]
 
 
 class QueryResponse:
@@ -117,6 +143,12 @@ class PandasAIAgent:
             # Reason: Call Agent.chat for natural language processing
             result = self.agent.chat(question)
 
+            # Reason: PandasAI catches exceptions internally and returns error strings
+            # We need to detect these and handle them appropriately
+            if self._is_pandasai_error(result):
+                logger.warning(f"PandasAI returned error for query: {question}")
+                return self._handle_pandasai_error(question, result)
+
             response = QueryResponse(
                 type_=self._detect_response_type(result),
                 content=result,
@@ -124,6 +156,11 @@ class PandasAIAgent:
             )
             logger.info(f"Response type: {response.type}")
             return response
+
+        except (NoCodeFoundError, NoResultFoundError) as e:
+            # Reason: Handle exceptions if they somehow propagate
+            logger.warning(f"Code generation/execution failed for query: {question} - {e}")
+            return self._handle_pandasai_error(question, str(e))
 
         except Exception as e:
             error_msg = f"Query failed: {str(e)}"
@@ -196,3 +233,157 @@ class PandasAIAgent:
             bool: True if data is loaded, False otherwise.
         """
         return self.agent is not None and bool(self.loaded_data)
+
+    def _is_insight_question(self, question: str) -> bool:
+        """Check if the question is asking for general data insights.
+
+        Args:
+            question: The user's question.
+
+        Returns:
+            bool: True if the question is asking for insights.
+        """
+        question_lower = question.lower()
+        return any(keyword in question_lower for keyword in INSIGHT_KEYWORDS)
+
+    def _is_pandasai_error(self, result: Any) -> bool:
+        """Check if the result is a PandasAI error string.
+
+        PandasAI catches exceptions internally and returns error strings
+        instead of raising them.
+
+        Args:
+            result: The result from Agent.chat().
+
+        Returns:
+            bool: True if the result is an error string.
+        """
+        if not isinstance(result, str):
+            return False
+
+        error_patterns = [
+            "Unfortunately, I was not able to get your answer",
+            "No code found in the response",
+            "No result returned",
+        ]
+        return any(pattern in result for pattern in error_patterns)
+
+    def _handle_pandasai_error(self, question: str, error_msg: str) -> QueryResponse:
+        """Handle PandasAI error by falling back to deep insights if appropriate.
+
+        Args:
+            question: The original user question.
+            error_msg: The error message from PandasAI.
+
+        Returns:
+            QueryResponse: Either deep insights or a helpful hint message.
+        """
+        # Reason: Fall back to deep insights for insight-related questions
+        if self._is_insight_question(question):
+            logger.info("Falling back to deep insights for insight question")
+            return self.generate_deep_insights()
+
+        hint_msg = (
+            "I couldn't complete the analysis for that question. "
+            "Try asking more specific questions like:\n"
+            "- What is the average of [column]?\n"
+            "- Show me the top 10 rows by [column]\n"
+            "- Plot a histogram of [column]\n"
+            "- What are the unique values in [column]?"
+        )
+        return QueryResponse(
+            type_="text",
+            content=hint_msg,
+            success=True,
+        )
+
+    def generate_deep_insights(self) -> QueryResponse:
+        """Generate deep insights by testing hypotheses about the data.
+
+        This method acts as a "deep researcher" that:
+        1. Analyzes data structure
+        2. Generates 3-5 hypotheses based on the data
+        3. Tests each hypothesis with specific queries
+        4. Returns findings
+
+        Returns:
+            QueryResponse: Response containing deep insights.
+        """
+        if not self.loaded_data:
+            return QueryResponse(
+                type_="error",
+                content="No data loaded. Please upload files first.",
+                success=False,
+            )
+
+        try:
+            dataframes = [ld.data for ld in self.loaded_data]
+            names = [ld.filename for ld in self.loaded_data]
+
+            generator = DeepInsightGenerator(dataframes, names)
+            report = generator.generate_deep_insights()
+
+            logger.info(
+                f"Generated deep insights: {report['successful_count']}/"
+                f"{report['hypothesis_count']} hypotheses tested successfully"
+            )
+
+            return QueryResponse(
+                type_="deep_insights",
+                content={
+                    "text": report["insights_text"],
+                    "hypotheses_results": report["hypotheses_results"],
+                    "hypothesis_count": report["hypothesis_count"],
+                    "successful_count": report["successful_count"],
+                },
+                success=True,
+            )
+
+        except Exception as e:
+            error_msg = f"Failed to generate deep insights: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            # Fall back to auto-insights if deep insights fail
+            logger.info("Falling back to auto-insights")
+            return self.generate_auto_insights()
+
+    def generate_auto_insights(self) -> QueryResponse:
+        """Generate automatic insights for loaded data using AutoInsight.
+
+        Returns:
+            QueryResponse: Response containing insights text and visualizations.
+        """
+        if not self.loaded_data:
+            return QueryResponse(
+                type_="error",
+                content="No data loaded. Please upload files first.",
+                success=False,
+            )
+
+        try:
+            dataframes = [ld.data for ld in self.loaded_data]
+            names = [ld.filename for ld in self.loaded_data]
+
+            auto_insight = AutoInsight(dataframes, names)
+            report = auto_insight.generate_full_report()
+
+            # Return insights text as the primary content
+            # Visualizations can be accessed separately if needed
+            logger.info("Generated auto-insights successfully")
+            return QueryResponse(
+                type_="auto_insights",
+                content={
+                    "text": report["insights_text"],
+                    "visualizations": report["visualizations"],
+                    "summaries": report["summaries"],
+                },
+                success=True,
+            )
+
+        except Exception as e:
+            error_msg = f"Failed to generate insights: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return QueryResponse(
+                type_="error",
+                content=error_msg,
+                success=False,
+            )
